@@ -1,6 +1,6 @@
 # flutter_api_with_dio
 
-A new Flutter project.
+This project is a structured learning journey to master GET APIs using the Dio package in Flutter — from beginner to advanced level. It covers simple data fetching, loading states, error handling, pagination, interceptors, and clean architecture
 
 ## Getting Started
 
