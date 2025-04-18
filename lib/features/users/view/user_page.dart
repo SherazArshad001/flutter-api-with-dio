@@ -11,43 +11,86 @@ class UserPage extends StatefulWidget {
 
 class _UserPageState extends State<UserPage> {
   final UserApi userApi = UserApi();
+  final ScrollController _scrollController = ScrollController();
+
   List<User> users = [];
-  bool isLoading = true;
+  bool isLoading = false;
+  bool hasMore = true;
+  int currentPage = 1;
 
   @override
   void initState() {
     super.initState();
-    loadUsers();
+    fetchUsers();
+    _scrollController.addListener(_scrollListener);
   }
 
-  void loadUsers() async {
-    try {
-      users = await userApi.fetchUsers(1);
-    } catch (e) {
-      print(e);
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !isLoading &&
+        hasMore) {
+      fetchUsers();
     }
-    setState(() {
-      isLoading = false;
-    });
+  }
+
+  Future<void> fetchUsers() async {
+    setState(() => isLoading = true);
+    try {
+      final newUsers = await userApi.fetchUsers(currentPage);
+      if (newUsers.isEmpty) {
+        hasMore = false;
+      } else {
+        currentPage++;
+        users.addAll(newUsers);
+      }
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
+    setState(() => isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Users")),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: users.length,
-              itemBuilder: (context, index) {
-                final user = users[index];
-                return ListTile(
-                  leading: CircleAvatar(backgroundImage: NetworkImage(user.avatar)),
-                  title: Text("${user.firstName} ${user.lastName}"),
-                  subtitle: Text(user.email),
-                );
-              },
-            ),
+      appBar: AppBar(title: const Text("Paginated Users")),
+      body: ListView.builder(
+        controller: _scrollController,
+        itemCount: users.length + (isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index < users.length) {
+            final user = users[index];
+            return ListTile(
+              leading: CircleAvatar(backgroundImage: NetworkImage(user.avatar)),
+              title: Text("${user.firstName} ${user.lastName}"),
+              subtitle: Text(user.email),
+            );
+          } else {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+        },
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }
