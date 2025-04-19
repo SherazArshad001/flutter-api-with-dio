@@ -18,6 +18,9 @@ class _UserPageState extends State<UserPage> {
   bool hasMore = true;
   int currentPage = 1;
 
+  bool hasError = false;
+  String errorMessage = "";
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +38,11 @@ class _UserPageState extends State<UserPage> {
   }
 
   Future<void> fetchUsers() async {
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      hasError = false;
+    });
+
     try {
       final newUsers = await userApi.fetchUsers(currentPage);
       if (newUsers.isEmpty) {
@@ -45,21 +52,19 @@ class _UserPageState extends State<UserPage> {
         users.addAll(newUsers);
       }
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Error'),
-          content: Text(e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
+      hasError = true;
+      errorMessage = e.toString();
     }
-    setState(() => isLoading = false);
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -68,7 +73,7 @@ class _UserPageState extends State<UserPage> {
       appBar: AppBar(title: const Text("Paginated Users")),
       body: ListView.builder(
         controller: _scrollController,
-        itemCount: users.length + (isLoading ? 1 : 0),
+        itemCount: users.length + 1,
         itemBuilder: (context, index) {
           if (index < users.length) {
             final user = users[index];
@@ -77,20 +82,33 @@ class _UserPageState extends State<UserPage> {
               title: Text("${user.firstName} ${user.lastName}"),
               subtitle: Text(user.email),
             );
-          } else {
+          } else if (hasError) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  Text(
+                    "Error: $errorMessage",
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: fetchUsers,
+                    child: const Text("Retry"),
+                  ),
+                ],
+              ),
+            );
+          } else if (isLoading) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(child: CircularProgressIndicator()),
             );
+          } else {
+            return const SizedBox.shrink();
           }
         },
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 }
