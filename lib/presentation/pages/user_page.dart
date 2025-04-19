@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_api_with_dio/controllers/user_controller.dart';
+import 'package:flutter_api_with_dio/core/constants/app_constant.dart';
+import 'package:flutter_api_with_dio/core/theme/app_text_styles.dart';
+import 'package:flutter_api_with_dio/presentation/widgets/custom_error_widget.dart';
 import 'package:provider/provider.dart';
 
 class UserPage extends StatelessWidget {
@@ -10,7 +13,7 @@ class UserPage extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => UserController(),
       child: Scaffold(
-        appBar: AppBar(title: const Text("Paginated Users")),
+        appBar: AppBar(title: const Text(AppConstants.appBarTitle)),
         body: Consumer<UserController>(
           builder: (context, controller, _) {
             return ListView.builder(
@@ -23,25 +26,17 @@ class UserPage extends StatelessWidget {
                     leading: CircleAvatar(
                       backgroundImage: NetworkImage(user.avatar),
                     ),
-                    title: Text("${user.firstName} ${user.lastName}"),
-                    subtitle: Text(user.email),
+                    title: Text(
+                      "${user.firstName} ${user.lastName}",
+                      style: AppTextStyles.userName,
+                    ),
+                    subtitle: Text(user.email, style: AppTextStyles.userEmail),
                   );
                 } else if (controller.hasError) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
-                      children: [
-                        Text(
-                          "Error: ${controller.errorMessage}",
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: controller.fetchUsers,
-                          child: const Text("Retry"),
-                        ),
-                      ],
-                    ),
+                  return CustomErrorWidget(
+                    errorMessage:
+                        "${AppConstants.errorPrefix}${controller.errorMessage}",
+                    onRetry: controller.fetchUsers,
                   );
                 } else if (controller.isLoading) {
                   return const Padding(
